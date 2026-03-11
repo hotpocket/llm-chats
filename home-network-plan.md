@@ -9,7 +9,8 @@ devices can't touch internal servers. Non-tech family members can't accidentally
 into developer infrastructure. IoT devices are sandboxed away from everything.
 
 All of this is managed through a clean web UI — no command line required for day-to-day
-operation.
+operation. Set up the UDR7 with a **local account only** (no Ubiquiti cloud account) to
+minimize external attack surface.
 
 ---
 
@@ -44,7 +45,9 @@ This is the brain of the entire network. It does **five jobs in one box**:
 
 2. **Firewall** — Inspects all traffic between network segments (VLANs) and enforces
    rules like "Family devices cannot reach the Servers network." Also protects you from
-   inbound internet threats. Optional IDS/IPS (intrusion detection) if you want it.
+   inbound internet threats. Has optional IDS/IPS (intrusion detection/prevention) — leave
+   it **off** initially, it can cause false positives that temporarily block normal traffic
+   like gaming and streaming. Turn it on later once the network is stable.
 
 3. **UniFi Controller** — The management software that runs on the UDR7 itself. This is
    the web UI where you configure everything: networks, VLANs, firewall rules, SSIDs, and
@@ -438,6 +441,53 @@ The beauty of the UniFi ecosystem is that you can add pieces over time:
   a microSD slot for basic camera recording).
 - **PoE-powered devices** — the switch can power other PoE devices (cameras, VoIP phones,
   etc.).
+
+---
+
+## Future Considerations
+
+### DNS-Based Ad/Tracker Blocking
+
+Once the network is running, we can add **Pi-hole** or **AdGuard Home** on a server or
+Raspberry Pi. Set it as the DNS server in the UDR7's DHCP settings and every device on
+the network gets ad-blocking automatically — no browser extensions needed. Can be
+configured per-VLAN (e.g., Family gets ad-blocking, Trusted doesn't).
+
+### Replacing the UDR7 with Open-Source (OPNsense)
+
+The UDR7 is proprietary firmware — we can't flash OpenWrt or anything else onto it. If we
+ever want full open-source control over the router/firewall, the migration path is clean:
+
+1. Buy a mini PC (~$150-250) with 2+ Ethernet ports
+2. Install **OPNsense** (free, open-source firewall/router OS)
+3. Move the UniFi controller into a **Docker container** on one of our servers (free)
+4. **Keep everything else** — APs, switch, Ethernet runs all stay exactly as they are
+
+OPNsense gives us: custom IDS/IPS signature feeds (Suricata with any ruleset), unlimited
+firewall customization, full package system, and a community that can't EOL the software
+on us. The trade-off is two management UIs instead of one (OPNsense for routing/firewall,
+UniFi controller for APs).
+
+**This is a weekend project, not a rip-and-replace.** The expensive/permanent parts of this
+build (APs, switch, cabling) are all vendor-neutral and carry over.
+
+### Ubiquiti EOL Risk
+
+Ubiquiti does **not** publish end-of-life dates. Based on past products, expect roughly
+5-7 years of active firmware support. When support ends the hardware keeps working — it
+just stops getting updates. The APs are the cheap/replaceable part (~$100-200 each). The
+Ethernet runs in your walls last decades. This is why we invest in cabling now.
+
+### IDS/IPS Phased Rollout
+
+Once the network has been stable for a few weeks:
+
+1. Enable **IDS only** (detect, don't block) — watch what it flags for a week
+2. Suppress obvious false positives (gaming traffic, streaming, etc.)
+3. Then enable **IPS** (detect + block) with confidence that normal household traffic
+   won't get disrupted
+4. The **Dark Web Blocker** and **Malicious Website Blocker** toggles are safe to turn on
+   immediately — they use DNS blocking, not packet inspection, so fewer false positives
 
 ---
 
